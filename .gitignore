@@ -1,3 +1,9 @@
+# Random
+.idea/
+
+# Mac
+.DS_Store
+
 # Database
 *.db
 
