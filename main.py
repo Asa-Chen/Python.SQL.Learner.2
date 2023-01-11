@@ -2,17 +2,17 @@ from datetime import datetime
 import Utility.database as DBConnect
 PROMPT = """Welcome to the movie watching app:
 Add - Add new movie
-Upcoming - View upcoming movies
+Upcoming - View upcoming movies*
 All - View all movies
 Mark - Mark watched movie
 Watched - View watched movies
-User - Add user to the app
+User - Add user to the app*
 Exit - Exit the app
 Your choice: 
 """
 
 def add_movie():
-    title = input("Movie title: ")
+    title = input("Movie title: ").lower()
     if DBConnect.check_presense(title):
         print("Movie already exists.")
     else:
@@ -21,26 +21,29 @@ def add_movie():
         timestamp = release_date.timestamp()
         DBConnect.add_movie(title, timestamp)
 
-def print_movies():
+def print_all_movies():
     movie_list = DBConnect.select_movies()
     for movie in movie_list:
         date = datetime.fromtimestamp(movie[1])
-        date = date.date()
-        print(f"{movie[0]} was released {date}")
-        if movie[2]:
-            print("You have watched this movie.")
-        else:
-            print("You have not watched this movie.")
+        date = date.strftime("%d-%m-%Y")
+        print(f"{movie[0]}: released {date}\n")
+
+def print_watched_movies():
+    user = input("User to search for: ").lower()
+    watched_list = DBConnect.select_watched(user)
+    for movie in watched_list:
+        print(f"\n{movie[0]} has watched this movies: {movie[1]}")
 
 def mark_movie():
-    title = input("Movie to mark: ")
+    title = input("Movie to mark: ").lower()
     if DBConnect.check_presense(title):
-        DBConnect.mark_movie(title)
+        user = input("Who watched the movie? (user): ").lower()
+        DBConnect.mark_movie(user, title)
     else:
         print("Movie does not exists.")
 
 def delete_movie():
-    title = input("Movie to delete: ")
+    title = input("Movie to delete: ").lower()
     if DBConnect.check_presense(title):
         DBConnect.delete_movie(title)
     else:
@@ -49,21 +52,19 @@ def delete_movie():
 
 def menu():
     DBConnect.create_table()
-    while (choice := input(PROMPT)).lower() != 'end':
+    while (choice := input(PROMPT)).lower() != 'exit':
         if choice == 'add':
             add_movie()
         elif choice == 'upcoming':
             pass
         elif choice == 'all':
-            print_movies()
+            print_all_movies()
         elif choice == 'mark':
             mark_movie()
         elif choice == 'watched':
-            pass
+            print_watched_movies()
         elif choice == 'user':
             pass
-        elif choice == 'exit':
-            return
         else:
             print("Invalid input.")
 
