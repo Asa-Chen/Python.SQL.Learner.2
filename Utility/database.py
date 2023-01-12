@@ -1,5 +1,4 @@
 import sqlite3
-from datetime import datetime
 CREATE_MOVIE_TABLE = """CREATE TABLE IF NOT EXISTS movies (
     id INTEGER PRIMARY KEY,
     title,
@@ -9,20 +8,22 @@ CREATE_USER_TABLE = """CREATE TABLE IF NOT EXISTS users (
     )"""
 CREATE_WATCHED_TABLE = """CREATE TABLE IF NOT EXISTS watched (
     user_name,
-    movie_id,
+    movie_id INTEGER,
     FOREIGN KEY(user_name) REFERENCES users(username),
     FOREIGN KEY(movie_id) REFERENCES movies(id)
     )"""
-#MARK_MOVIE = "UPDATE movies SET watched=? WHERE title=?"
 INSERT_MOVIES = "INSERT INTO movies (title, release_date) VALUES (?, ?)"
 INSERT_WATCHED = "INSERT INTO watched (user_name, movie_id) VALUES (?, ?)"
 INSERT_USER = "INSERT INTO users (username) VALUES (?)"
-#DELETE_WATCHED = "DELETE FROM watched WHERE title=?"
 DELETE_MOVIES = "DELETE FROM movies WHERE title=?"
 SELECT_ALL_MOVIES = "SELECT * FROM movies"
-SELECT_WATCHED = "SELECT * FROM watched WHERE user_name=?"
+SELECT_WATCHED_NEW = """SELECT movies.*
+    FROM movies
+    JOIN watched ON watched.movie_id = movies.id
+    JOIN users ON users.username = watched.user_name
+    WHERE users.username=?"""
 SELECT_UPCOMING_MOVIES = "SELECT * FROM movies WHERE release_date > ?"
-SELECT_WATCHED_MOVIES = "SELECT * FROM watched WHERE user_name = ?"
+SEARCH_MOVIES = "SELECT * FROM movies WHERE title LIKE ?"
 
 connection = sqlite3.connect('data.db')
 
@@ -48,15 +49,27 @@ def select_movies(): #returns a list of tuples
     with connection:
         return connection.execute(SELECT_ALL_MOVIES).fetchall()
 
+def select_upcoming(date):
+    with connection:
+        return connection.execute(SELECT_UPCOMING_MOVIES, (date,)).fetchall()
+
 def select_watched(user): #returns a list of tuples
     with connection:
-        return connection.execute(SELECT_WATCHED, (user,)).fetchall()
+        return connection.execute(SELECT_WATCHED_NEW, (user,)).fetchall()
 
-def mark_movie(user, id):
+def search_movies(target):
     with connection:
-        connection.execute(INSERT_WATCHED, (user, id,))
+        return connection.execute(SEARCH_MOVIES, (f"%{target}%", )).fetchall()
+
+def mark_movie(user, movie_id):
+    with connection:
+        connection.execute(INSERT_WATCHED, (user, movie_id,))
 
 def check_movie_presense(movie_id):
     with connection: #bool of a list returned by a cursor.fetchall() from connection
         return bool(connection.execute("SELECT * FROM movies WHERE id=?", (movie_id,)).fetchall())
+
+def check_user_presense(user_id):
+    with connection:
+        return bool(connection.execute("SELECT * FROM users WHERE username=?", (user_id,)).fetchall())
 
